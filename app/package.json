@@ -1,0 +1,14 @@
+{
+  "name": "lexicon",
+  "version": "1.0.0",
+  "description": "Lexicon — MasterLib.json glossary manager",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-packager . Lexicon --platform=darwin --overwrite --asar --icon=icon.icns && node scripts/clean-privacy-keys.js Lexicon-darwin-arm64/Lexicon.app && rm -rf ../Lexicon.app && cp -R Lexicon-darwin-arm64/Lexicon.app ../Lexicon.app && echo 'App updated'"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-packager": "^17.1.2"
+  }
+}

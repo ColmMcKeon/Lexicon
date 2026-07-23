@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Lexicon</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:      #14161a;
+    --card:    #1c1f26;
+    --card2:   #232733;
+    --border:  rgba(140,170,255,0.14);
+    --text:    #e8ecf4;
+    --text-2:  #9aa6be;
+    --text-3:  #667088;
+    --accent:  #4f8cff;
+    --accent2: #7db0ff;
+    --danger:  #ff6b6b;
+    --ok:      #4fd18b;
+    --radius:  12px;
+    --rsm:     8px;
+    --titlebar: 38px;
+  }
+
+  html, body { height: 100%; overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+    background: var(--bg); color: var(--text); user-select: none; }
+
+  #titlebar {
+    height: var(--titlebar); -webkit-app-region: drag;
+    display: flex; align-items: center; justify-content: center; position: relative;
+    font-size: 12px; font-weight: 600; color: var(--text-3); letter-spacing: .06em;
+    flex-shrink: 0;
+  }
+  #titlebar .tools { position: absolute; right: 12px; display: flex; gap: 6px; -webkit-app-region: no-drag; }
+  .toolbtn {
+    font-size: 11px; color: var(--text-2); background: var(--card2);
+    border: 1px solid var(--border); border-radius: var(--rsm);
+    padding: 4px 9px; cursor: pointer;
+  }
+  .toolbtn:hover { color: var(--text); border-color: var(--accent); }
+
+  #app { display: flex; flex-direction: column; height: 100vh; }
+  #main { flex: 1; display: flex; gap: 10px; padding: 0 10px 10px; overflow: hidden; min-height: 0; }
+
+  /* ── LEFT: list ── */
+  #left { width: 300px; flex-shrink: 0; display: flex; flex-direction: column;
+    background: var(--card); border-radius: var(--radius); overflow: hidden; }
+  #searchbar { padding: 10px; display: flex; gap: 8px; align-items: center; }
+  #search {
+    flex: 1; background: var(--card2); border: 1px solid var(--border); border-radius: var(--rsm);
+    color: var(--text); padding: 8px 10px; font-size: 13px; outline: none; -webkit-app-region: no-drag;
+  }
+  #search:focus { border-color: var(--accent); }
+  #addbtn {
+    width: 34px; height: 34px; flex-shrink: 0; border-radius: var(--rsm);
+    background: var(--accent); color: #fff; border: none; font-size: 20px; line-height: 1;
+    cursor: pointer;
+  }
+  #addbtn:hover { background: var(--accent2); }
+  #count { padding: 0 12px 6px; font-size: 11px; color: var(--text-3); }
+  #list { flex: 1; overflow-y: auto; padding: 4px 6px 8px; }
+  .item {
+    padding: 8px 10px; border-radius: var(--rsm); cursor: pointer;
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .item:hover { background: var(--card2); }
+  .item.sel { background: rgba(79,140,255,0.16); }
+  .item .term { font-size: 13px; font-weight: 600; color: var(--text); }
+  .item .snippet { font-size: 11px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* ── RIGHT: editor ── */
+  #right { flex: 1; display: flex; flex-direction: column;
+    background: var(--card); border-radius: var(--radius); overflow: hidden; min-width: 0; }
+  #editor { flex: 1; overflow-y: auto; padding: 18px 20px; display: none; flex-direction: column; gap: 14px; }
+  #editor.active { display: flex; }
+  #empty { flex: 1; display: flex; align-items: center; justify-content: center;
+    color: var(--text-3); font-size: 13px; text-align: center; padding: 20px; }
+  label { font-size: 11px; color: var(--text-2); letter-spacing: .04em; text-transform: uppercase; display: block; margin-bottom: 6px; }
+  #term-name {
+    width: 100%; background: var(--card2); border: 1px solid var(--border); border-radius: var(--rsm);
+    color: var(--text); padding: 10px 12px; font-size: 16px; font-weight: 600; outline: none; -webkit-app-region: no-drag;
+  }
+  #term-name:focus { border-color: var(--accent); }
+  #dupwarn { color: var(--danger); font-size: 11px; margin-top: 6px; display: none; }
+  .def {
+    position: relative; background: var(--card2); border: 1px solid var(--border);
+    border-radius: var(--rsm); margin-bottom: 8px;
+  }
+  .def textarea {
+    width: 100%; background: transparent; border: none; color: var(--text);
+    padding: 10px 34px 10px 12px; font-size: 13px; line-height: 1.5; resize: vertical;
+    min-height: 66px; outline: none; font-family: inherit;
+  }
+  .def .rm {
+    position: absolute; top: 6px; right: 8px; width: 20px; height: 20px; border: none;
+    background: transparent; color: var(--text-3); cursor: pointer; font-size: 16px; border-radius: 4px;
+  }
+  .def .rm:hover { color: var(--danger); background: rgba(255,107,107,0.1); }
+  #adddef { font-size: 12px; color: var(--accent2); background: none; border: 1px dashed var(--border);
+    border-radius: var(--rsm); padding: 7px; cursor: pointer; width: 100%; }
+  #adddef:hover { border-color: var(--accent); }
+
+  #actions { display: flex; gap: 10px; padding: 12px 20px; border-top: 1px solid var(--border); flex-shrink: 0; }
+  .btn { border: none; border-radius: var(--rsm); padding: 9px 16px; font-size: 13px; font-weight: 600; cursor: pointer; }
+  .btn.save { background: var(--accent); color: #fff; }
+  .btn.save:hover { background: var(--accent2); }
+  .btn.save:disabled { opacity: .4; cursor: default; }
+  .btn.del { background: transparent; color: var(--danger); border: 1px solid rgba(255,107,107,0.35); margin-left: auto; }
+  .btn.del:hover { background: rgba(255,107,107,0.12); }
+
+  #toast {
+    position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--card2); border: 1px solid var(--border); color: var(--text);
+    padding: 10px 18px; border-radius: 20px; font-size: 12px; opacity: 0; transition: all .25s;
+    pointer-events: none; box-shadow: 0 6px 24px rgba(0,0,0,.4); max-width: 80%;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  #toast.err { border-color: var(--danger); color: #ffd0d0; }
+  #toast.ok  { border-color: var(--ok); }
+
+  ::-webkit-scrollbar { width: 9px; }
+  ::-webkit-scrollbar-thumb { background: var(--card2); border-radius: 5px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="titlebar">
+    <span>LEXICON</span>
+    <div class="tools">
+      <button class="toolbtn" id="btn-reveal">Reveal file</button>
+      <button class="toolbtn" id="btn-backups">Show backup</button>
+    </div>
+  </div>
+  <div id="main">
+    <div id="left">
+      <div id="searchbar">
+        <input id="search" type="text" placeholder="Search terms & definitions…" autocomplete="off"/>
+        <button id="addbtn" title="Add term">+</button>
+      </div>
+      <div id="count">—</div>
+      <div id="list"></div>
+    </div>
+    <div id="right">
+      <div id="empty">Select a term on the left, or press <strong>+</strong> to add one.</div>
+      <div id="editor">
+        <div>
+          <label>Term</label>
+          <input id="term-name" type="text" autocomplete="off" spellcheck="false"/>
+          <div id="dupwarn"></div>
+        </div>
+        <div>
+          <label>Definitions</label>
+          <div id="defs"></div>
+          <button id="adddef">+ Add another definition</button>
+        </div>
+      </div>
+      <div id="actions" style="display:none">
+        <button class="btn save" id="btn-save">Save</button>
+        <button class="btn del"  id="btn-del">Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script>
+const api = window.electronAPI;
+
+let glossary = {};        // { TERM: [def, ...] }  — source of truth
+let selected = null;      // currently selected term key (as stored)
+let isNew = false;        // editing a brand-new (unsaved) term
+
+const $ = sel => document.querySelector(sel);
+const listEl   = $('#list');
+const searchEl = $('#search');
+const countEl  = $('#count');
+const editorEl = $('#editor');
+const emptyEl  = $('#empty');
+const actionsEl= $('#actions');
+const nameEl   = $('#term-name');
+const defsEl   = $('#defs');
+const dupEl    = $('#dupwarn');
+
+function toast(msg, kind) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.className = 'show ' + (kind || '');
+  clearTimeout(t._t);
+  t._t = setTimeout(() => { t.className = ''; }, 2600);
+}
+
+// keys sorted case-insensitively, with the *Sample template pinned to the top
+function sortedKeys(filter) {
+  let keys = Object.keys(glossary);
+  if (filter) {
+    const q = filter.toLowerCase();
+    keys = keys.filter(k =>
+      k.toLowerCase().includes(q) ||
+      glossary[k].some(d => d.toLowerCase().includes(q)));
+  }
+  return keys.sort((a, b) => {
+    if (a.startsWith('*') && !b.startsWith('*')) return -1;
+    if (b.startsWith('*') && !a.startsWith('*')) return 1;
+    return a.toLowerCase().localeCompare(b.toLowerCase());
+  });
+}
+
+function renderList() {
+  const keys = sortedKeys(searchEl.value.trim());
+  listEl.innerHTML = '';
+  for (const k of keys) {
+    const div = document.createElement('div');
+    div.className = 'item' + (k === selected ? ' sel' : '');
+    div.innerHTML = `<span class="term"></span><span class="snippet"></span>`;
+    div.querySelector('.term').textContent = k;
+    div.querySelector('.snippet').textContent = (glossary[k][0] || '').slice(0, 80);
+    div.onclick = () => selectTerm(k);
+    listEl.appendChild(div);
+  }
+  const total = Object.keys(glossary).length;
+  countEl.textContent = searchEl.value.trim()
+    ? `${keys.length} of ${total} terms`
+    : `${total} terms`;
+}
+
+function renderDefs(defs) {
+  defsEl.innerHTML = '';
+  (defs.length ? defs : ['']).forEach(text => addDefField(text));
+}
+
+function addDefField(text) {
+  const wrap = document.createElement('div');
+  wrap.className = 'def';
+  const ta = document.createElement('textarea');
+  ta.value = text || '';
+  const rm = document.createElement('button');
+  rm.className = 'rm'; rm.textContent = '×'; rm.title = 'Remove definition';
+  rm.onclick = () => { wrap.remove(); if (!defsEl.children.length) addDefField(''); };
+  wrap.appendChild(ta); wrap.appendChild(rm);
+  defsEl.appendChild(wrap);
+}
+
+function currentDefs() {
+  return [...defsEl.querySelectorAll('textarea')]
+    .map(t => t.value.trim()).filter(Boolean);
+}
+
+function selectTerm(k) {
+  selected = k; isNew = false;
+  nameEl.value = k;
+  renderDefs(glossary[k]);
+  dupEl.style.display = 'none';
+  emptyEl.style.display = 'none';
+  editorEl.classList.add('active');
+  actionsEl.style.display = 'flex';
+  renderList();
+}
+
+function newTerm() {
+  selected = null; isNew = true;
+  nameEl.value = '';
+  renderDefs(['']);
+  dupEl.style.display = 'none';
+  emptyEl.style.display = 'none';
+  editorEl.classList.add('active');
+  actionsEl.style.display = 'flex';
+  renderList();
+  nameEl.focus();
+}
+
+function checkDup() {
+  const name = nameEl.value.trim();
+  const clash = Object.keys(glossary).find(k =>
+    k.toLowerCase() === name.toLowerCase() && k !== selected);
+  if (name && clash) {
+    dupEl.textContent = `"${clash}" already exists — saving will update it.`;
+    dupEl.style.display = 'block';
+  } else {
+    dupEl.style.display = 'none';
+  }
+}
+
+async function save() {
+  const name = nameEl.value.trim();
+  const defs = currentDefs();
+  if (!name) { toast('Term name is required.', 'err'); nameEl.focus(); return; }
+  if (!defs.length) { toast('Add at least one definition.', 'err'); return; }
+
+  // If renaming, drop the old key.
+  if (selected && selected !== name) delete glossary[selected];
+  // Merge onto any existing key with the same case-insensitive name.
+  const existing = Object.keys(glossary).find(k => k.toLowerCase() === name.toLowerCase());
+  if (existing && existing !== name) delete glossary[existing];
+  glossary[name] = defs;
+
+  await persist();
+  selected = name; isNew = false;
+  renderList();
+}
+
+async function persist(force) {
+  // Rebuild in sorted order so the file stays tidy (*Sample pinned first).
+  const ordered = {};
+  for (const k of sortedKeys('')) ordered[k] = glossary[k];
+  const res = await api.saveGlossary(ordered, !!force);
+  if (res.ok) {
+    toast(`Saved — ${res.count} terms${res.backup ? ' (backed up)' : ''}`, 'ok');
+    return true;
+  }
+  if (res.needsConfirm) {
+    if (confirm(`${res.error}\n\nSave anyway?`)) return persist(true);
+    toast('Save cancelled.', 'err');
+    // reload to resync with disk
+    await load();
+    return false;
+  }
+  toast('Save failed: ' + res.error, 'err');
+  return false;
+}
+
+async function del() {
+  if (!selected) { // unsaved new term — just clear
+    editorEl.classList.remove('active');
+    actionsEl.style.display = 'none';
+    emptyEl.style.display = 'flex';
+    return;
+  }
+  if (!confirm(`Delete "${selected}"?`)) return;
+  delete glossary[selected];
+  const okSaved = await persist();
+  if (okSaved) {
+    selected = null;
+    editorEl.classList.remove('active');
+    actionsEl.style.display = 'none';
+    emptyEl.style.display = 'flex';
+    renderList();
+  }
+}
+
+async function load() {
+  const res = await api.loadGlossary();
+  if (!res.ok) {
+    countEl.textContent = 'load error';
+    toast('Could not load glossary: ' + res.error, 'err');
+    emptyEl.textContent = 'Failed to read MasterLib.json — ' + res.error;
+    return;
+  }
+  glossary = res.data;
+  renderList();
+}
+
+// ── wire up ──
+searchEl.oninput = renderList;
+$('#addbtn').onclick = newTerm;
+$('#adddef').onclick = () => addDefField('');
+$('#btn-save').onclick = save;
+$('#btn-del').onclick = del;
+nameEl.oninput = checkDup;
+$('#btn-reveal').onclick  = () => api.revealFile();
+$('#btn-backups').onclick = () => api.openBackups();
+document.addEventListener('keydown', e => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 's') { e.preventDefault(); if (editorEl.classList.contains('active')) save(); }
+  if ((e.metaKey || e.ctrlKey) && e.key === 'f') { e.preventDefault(); searchEl.focus(); searchEl.select(); }
+  if ((e.metaKey || e.ctrlKey) && e.key === 'n') { e.preventDefault(); newTerm(); }
+});
+
+load();
+</script>
+</body>
+</html>
