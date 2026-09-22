@@ -2,6 +2,14 @@
 
 A glossary manager for MasterLib.json — a desktop app for searching, adding, editing, and organizing terminology and definitions.
 
+## Tech Stack
+
+- **Framework:** Electron
+- **Language:** JavaScript/HTML/CSS
+- **Data:** JSON (MasterLib.json)
+- **Build:** electron-packager
+- **Platform:** macOS (Apple Silicon)
+
 ## Features
 
 - **Search glossary** — Fast full-text search across all terms and definitions
